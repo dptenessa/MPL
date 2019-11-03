@@ -1,15 +1,19 @@
 import pandas as pd
 import os
 
-def priceFor24():
-    for rownum,row in phones_df.iterrows():
-        if row.MAPVAT % 24 == 0:
-            phones_df.at[rownum, 'Price24'] = row.MAPVAT
-        else:
-            phones_df.at[rownum, 'Price24'] = int(row.MAPVAT / 24) * 24 + 24
+def priceFor24(price):   ####MAPVAT
+    #for rownum,row in phones_df.iterrows():
+    price1 = price / 24
+    price2 = int(price1/10) * 10 + 9
+    returned_price = price2 * 24
+    # if price % 24 == 0:
+    #     returned_price = price
+    # else:
+    #     returned_price = int(price / 24) * 24 + 24
+    return returned_price
 
-def final_price(HO,priceFor24,tariff_discount,commitment_discount,discount_finance,discount_channel,exceptions):
-        final_pr = priceFor24 + tariff_discount + commitment_discount + discount_finance + discount_channel + exceptions
+def final_price(HO,reference_price,tariff_discount,commitment_discount,discount_finance,discount_channel,exceptions):
+        final_pr = reference_price + tariff_discount*VAT + commitment_discount + discount_finance + discount_channel + exceptions
         if final_pr > HO:
             final_pr = HO
         return final_pr
@@ -39,8 +43,8 @@ discounts_transactions = pd.read_excel("MPL dashboard.xlsx","Transaction Discoun
 phones_df = pd.read_excel("MPL dashboard.xlsx","Phones")
 exception = pd.read_excel("MPL dashboard.xlsx","Exceptions")
 phones_df.MAP.apply(float)
-phones_df['MAPVAT'] = phones_df.MAP*VAT
-priceFor24()
+phones_df['Reference_Price'] = (phones_df.MAP+phones_df.Credit_Note)*VAT
+#priceFor24()
 discounts_commitment['link'] = "1"
 tariffDiscounts['link'] = "1"
 discounts_finance['link'] = "1"
@@ -49,7 +53,7 @@ discounts_transactions['link'] = "1"
 phones_df['link'] = "1"
 
 
-def return_phome_info(phone_name_i, memory_i, tariff_i, channel_i, transaction_i, finance_i, commitment_i):    #,memory,tariff,commitment,fin_conditions,channel,transaction):
+def return_phome_info(phone_name_i, memory_i, tariff_i, channel_i, transaction_i, commitment_i, finance_i):    #,memory,tariff,commitment,fin_conditions,channel,transaction):
 
     if phone_name_i != "":
         phones = phones_df.loc[(phones_df["Name"] == phone_name_i) & (phones_df["Memory"] == int(memory_i))]
@@ -89,13 +93,15 @@ def return_phome_info(phone_name_i, memory_i, tariff_i, channel_i, transaction_i
                                                                     row.Commitment, row.Channel, row.Transaction,
                                                                     row.Finance_Conditions)
         df5.at[rownum, 'Additional_Discounts'] = Additional_dicounts
-        df5.at[rownum,'Final_Price'] = final_price(row.HO, row.Price24, row.Tariff_Discount, row.Commitment_Discount,
+        df5.at[rownum,'Final_Price'] = final_price(row.HO, row.Reference_Price, row.Tariff_Discount, row.Commitment_Discount,
                                                    row.Finance_Discount, row.Channel_Discount, Additional_dicounts)
-    json = df5.to_json(orient='index')
-    return json
+        df5.at[rownum,'Final Price rounded'] = priceFor24(df5.at[rownum,'Final_Price'])
 
-##a=(return_phome_info("iPhone XS white",128,"L","","","",""))
+    ### For the entire table
+    df5.to_excel("output.xlsx", index=False)
+    os.startfile("output.xlsx")
 
-### For the entire table
-##a.to_excel("output.xlsx", index=False)
-##os.startfile("output.xlsx")
+    #json = df5.to_json(orient='index')
+    #return json
+
+return_phome_info("","", "","", "","","")
